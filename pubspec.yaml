@@ -38,6 +38,7 @@ dependencies:
   dio: ^4.0.0
   workmanager: ^0.4.1
   validators: ^3.0.0
+  wakelock: ^0.6.2
 
 dev_dependencies:
   flutter_test:

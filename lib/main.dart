@@ -4,48 +4,45 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_location/data/location_model.dart';
-import 'package:get_location/home_page.dart';
 import 'package:validators/validators.dart';
-import 'package:workmanager/workmanager.dart';
+import 'package:wakelock/wakelock.dart';
 
-StreamController<String> serviceController = StreamController<String>();
-Stream<String> get serviceStream => serviceController.stream;
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
+  Wakelock.enable();
+  // Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
   // Workmanager().registerOneOffTask("send_location", "sendData");
   // Workmanager().registerPeriodicTask(uniqueName, taskName)
   runApp(const MyApp());
 }
 
-void callbackDispatcher() {
-  Workmanager().executeTask((task, inputData) async {
-    String sendingStatus = '';
-    var url = inputData?['url'] ?? '';
-    double lat = inputData?['lat'] ?? 0;
-    double long = inputData?['long'] ?? 0;
-    double accuracy = inputData?['accuracy'] ?? 0;
-    sendingStatus = 'Bắt đầu gửi vị trí...';
-    Response? res;
-    try {
-      res = await Dio().post(url, data: {
-        'lat': lat,
-        'lng': long,
-        'accuracy': accuracy,
-      });
-    } catch (e) {}
-    if (res != null && res.data != null) {
-      sendingStatus = 'Gửi vị trí thành công';
-    } else {
-      sendingStatus = 'Gửi vị trí thất bại';
-    }
-    serviceController.sink.add(sendingStatus);
-    return Future.value(true);
-  });
-}
+// void callbackDispatcher() {
+//   Workmanager().executeTask((task, inputData) async {
+//     String sendingStatus = '';
+//     var url = inputData?['url'] ?? '';
+//     double lat = inputData?['lat'] ?? 0;
+//     double long = inputData?['long'] ?? 0;
+//     double accuracy = inputData?['accuracy'] ?? 0;
+//     sendingStatus = 'Bắt đầu gửi vị trí...';
+//     Response? res;
+//     try {
+//       res = await Dio().post(url, data: {
+//         'lat': lat,
+//         'lng': long,
+//         'accuracy': accuracy,
+//       });
+//     } catch (e) {}
+//     if (res != null && res.data != null) {
+//       sendingStatus = 'Gửi vị trí thành công';
+//     } else {
+//       sendingStatus = 'Gửi vị trí thất bại';
+//     }
+//     serviceController.sink.add(sendingStatus);
+//     return Future.value(true);
+//   });
+// }
 
-void Function()? onExecuted;
+// void Function()? onExecuted;
 
 class MyApp extends StatelessWidget {
   const MyApp({Key? key}) : super(key: key);
@@ -144,19 +141,11 @@ class _MyHomePageState extends State<MyHomePage> {
             SizedBox(
               height: 10,
             ),
-            StreamBuilder<String>(
-                stream: serviceStream,
-                builder: (context, snapshot) {
-                  String sendingStatus = '';
-                  if (snapshot.hasData) {
-                    sendingStatus = snapshot.data ?? '';
-                  }
-                  return Container(
-                    padding: const EdgeInsets.all(8.0),
-                    alignment: Alignment.center,
-                    child: Text(sendingStatus),
-                  );
-                }),
+            Container(
+              padding: const EdgeInsets.all(8.0),
+              alignment: Alignment.center,
+              child: Text(sendingStatus),
+            ),
             Center(
               child: ElevatedButton(
                   onPressed: () {
@@ -184,19 +173,8 @@ class _MyHomePageState extends State<MyHomePage> {
   void initTimer() async {
     _timer?.cancel();
     _timer = Timer.periodic(Duration(seconds: timeWait), (timer) async {
-      locationModel = await getCurrentLocation();
-      if (locationModel != null) {
-        await Workmanager().cancelByUniqueName('send_location');
-        Workmanager().registerOneOffTask(
-          "send_location",
-          "send_location",
-          inputData: <String, dynamic>{
-            'url': _url,
-            'lat': locationModel!.lat,
-            'long': locationModel!.long,
-            'accuracy': locationModel!.accuracy,
-          },
-        );
+      if (isCallAPIDone) {
+        await getLocation();
       }
 
       // print("send location....");
